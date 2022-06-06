@@ -1,0 +1,171 @@
+!pip install jovian --upgrade -q
+import jovian
+jovian.set_project('global-commodity-trade-statistics')
+jovian.set_colab_id('1Ppgql8KuLNOKs91sYQN_Uh_64hic2PaO')
+!pip install jovian --upgrade --quiet
+import jovian
+jovian.commit(project="global-commodity-trade-statistics")
+import numpy as np
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
+import plotly.express as px
+import ptitprince as pt
+!pip install opendatasets --upgrade --quiet
+import opendatasets as od
+url = 'https://www.kaggle.com/unitednations/global-commodity-trade-statistics'
+od.download(url)
+data_filename = './global-commodity-trade-statistics/commodity_trade_statistics_data.csv'
+
+##Data preparation and cleaning
+
+Global_commodity_df = pd.read_csv(data_filename)
+Global_commodity_df.isna().sum()
+Global_commodity_df = Global_commodity_df.dropna()
+
+##Exploratory Analysis
+
+Global_commodity_df.describe()
+Global_commodity_df.info()
+Global_commodity_df.columns
+countries = Global_commodity_df.shape[0]
+countries = Global_commodity_df.iloc[:,0]
+countries = countries.unique()
+#Data Visualization
+UK_df = Global_commodity_df[Global_commodity_df.country_or_area.isin(["United Kingdom"])]
+UK_df = UK_df.iloc[:,[1,4]]
+plt.figure(figsize=(15,5))
+plt.plot(UK_df.year,UK_df.flow,'o--')    
+plt.legend(UK_df.flow)
+plt.xlabel('YEAR')
+plt.ylabel('FLOW')
+plt.title('Imports Vs Exports of UK');
+plot = px.scatter(UK_df, 
+           x="year", 
+           y="flow", 
+           color="flow",
+         title="Imports Vs Exports of UK",
+                labels={
+                     "year": "Year",
+                     "flow": "Flow"
+                 },opacity = 0.495245)
+plot.update_layout(
+    font_family="Times New Roman",
+    font_color="#7f7f7f",
+    font_size = int(16))
+plot.update_layout()
+!pip install wordcloud --upgrade --quiet
+from wordcloud import WordCloud, STOPWORDS
+data = Global_commodity_df['commodity'].value_counts().to_dict() 
+STOPWORDS=('except','parts','other','womens','girls')
+wordcloud = WordCloud(
+    width = 2000,
+    height = 1500,
+    min_word_length = 5,
+    background_color = 'white',
+    stopwords = STOPWORDS).generate(str(data))
+
+fig = plt.figure(
+    figsize = (30, 20),
+    facecolor = 'k',
+    edgecolor = 'k')
+plt.imshow(wordcloud, interpolation = 'bilinear')
+plt.axis('off')
+plt.tight_layout(pad=0)
+plt.show()
+Import_stats_df = Global_commodity_df[Global_commodity_df.flow.isin(["Import"])]
+Ind_Chi_Impstats_df = Import_stats_df["country_or_area"].isin(["India", "China"])
+Ind_Chi_Impstats_df = Import_stats_df[Ind_Chi_Impstats_df]
+Ind_Chi_Impstats_df = Ind_Chi_Impstats_df.iloc[:,[1,4,0]]
+Ind_Chi_Impstats_df
+#Exports_2k_df = Global_commodity_df.query('2000 <= year <= 2016')
+fig, ax = plt.subplots()
+fig.set_size_inches(11.7, 11.7)
+sns.histplot(Ind_Chi_Impstats_df, x="country_or_area", y = "year", hue="year");
+!pip install ptitprince --upgrade --quiet
+Rain_cloud = Import_stats_df["country_or_area"].isin(["India", "China", "Australia"])
+Rain_cloud_df = Import_stats_df[Rain_cloud]
+Rain_cloud_df = Rain_cloud_df.iloc[:,[0,8]]
+Rain_cloud_df = Rain_cloud_df.sort_values(by = 'quantity',ascending = True).dropna()
+Rain_cloud_df = Rain_cloud_df[Rain_cloud_df.quantity > 0]
+Rain_cloud_df = Rain_cloud_df.query('1732 <= quantity < 1.860133e+12')
+Rain_cloud_df = Rain_cloud_df.head(500)
+f, ax = plt.subplots(figsize=(17, 10))
+dx="country_or_area"; dy="quantity"; ort="h"; pal = "Spectral_r"
+
+ax=pt.half_violinplot( x = dy, y = dx, data = Rain_cloud_df, palette = pal, bw = .2, cut = 0., width = 0.6, inner = None, orient = ort)
+
+ax=sns.stripplot( x = dy, y = dx, data = Rain_cloud_df, palette = pal, edgecolor = "Black",
+size = 3, jitter = 1, zorder = 0, orient = ort)
+
+ax=sns.boxplot( x = dy, y = dx, data = Rain_cloud_df, color = "Blue", width = .15, zorder = 10,\
+showcaps = True, boxprops = {'facecolor':'none', "zorder":10},\
+showfliers=True, whiskerprops = {'linewidth':2, "zorder":10},\
+saturation = 1, orient = ort)
+
+
+plt.title("Import Stats");
+
+Andrews_curve_df = Rain_cloud_df
+plt.figure(figsize=(20,10))
+pd.plotting.andrews_curves(Andrews_curve_df, 'country_or_area', colormap='YlOrRd')
+plt.show()
+f, ax = plt.subplots(figsize=(15, 6))
+violin = sns.violinplot(x="country_or_area", y='quantity', data=Andrews_curve_df)
+violin;
+countries7_df = Global_commodity_df["country_or_area"].isin(["Guatemala", "Spain", "Swaziland", "Djibouti", "New Caledonia", "Mozambique", "Honduras"])
+countries7_df = Global_commodity_df[countries7_df]
+plt.figure(figsize=(15,7))
+
+chart = sns.countplot(x = 'country_or_area', data = countries7_df)
+
+chart.set_xticklabels(chart.get_xticklabels(), rotation=45)
+plt.title("Count for countries");
+ax = countries7_df.plot.hexbin(x='year', y='weight_kg',
+                    C='trade_usd',
+                    gridsize=10,
+                    cmap="Spectral_r", figsize=(17,9))
+
+plt.grid(True)
+cb = plt.colorbar(image,spacing='uniform', extend='max')
+plt.show()
+corr = countries7_df.corr()
+
+mask = np.triu(np.ones_like(corr, dtype=bool))
+
+
+sns.heatmap(corr, mask=mask, center=0,
+            square=True);
+most_popular_commdf = Global_commodity_df.iloc[:,[0,1,3,4,8]]
+most_popular_commdf = most_popular_commdf[most_popular_commdf.flow.isin(["Import"])]
+most_popular_commdf = most_popular_commdf[most_popular_commdf.quantity > 0]
+most_popular_commdf = most_popular_commdf.sort_values(by = ['quantity'], ascending = False)
+from collections import Counter
+Counter(" ".join(most_popular_commdf.country_or_area).split()).most_common()
+# To cross check the above counter method,you can use the below code to find the count of AUSTRALIA.
+most_popular_commdf = most_popular_commdf[most_popular_commdf.country_or_area.isin(["Australia"])]
+
+Exports_Zambia = Global_commodity_df[Global_commodity_df.country_or_area.isin(["Zambia"])]
+Exports_Zambia = Exports_Zambia[Exports_Zambia.flow.isin(["Export"])]
+Exports_Zambia = Exports_Zambia.sort_values(by = ['quantity'], ascending = False)
+Exports_Zambia = Exports_Zambia[Exports_Zambia["year"] == 2001]
+Top5_Exports_Zambia = Exports_Zambia.head(5)
+Top5_Exports_Zambia.plot(kind='pie', y = 'quantity', autopct='%1.1f%%', 
+ startangle=90, shadow=False, labels=Top5_Exports_Zambia['commodity'], legend = False, fontsize=12, title = "Top 5 exports of Zambia in 2001");
+Exports_2k_df = Global_commodity_df.query('2000 <= year <= 2016')
+Albania_Exports = Exports_2k_df[Exports_2k_df.country_or_area.isin(["Albania"])]
+Albania_Exports_2k_df = Albania_Exports[Albania_Exports.flow.isin(["Export"])]
+Albania_Exports_2k_df = Albania_Exports_2k_df.sort_values(by = ['quantity'], ascending = False)
+Albania_Exports_2k1_df = (Albania_Exports_2k_df.groupby('year').agg({'year':'count'}))
+Albania_Exports_2k1_df.idxmax()
+Top_Exports_df = Global_commodity_df[Global_commodity_df.flow.isin(["Export"])]
+Top_Exports_2k10_df = Top_Exports_df[Top_Exports_df["year"] == 2010]
+Top_countries_2k10Ex_df = Top_Exports_2k10_df.sort_values(by = ['quantity'], ascending = False)
+Top5_countries_2k10Ex_df = Top_countries_2k10Ex_df.head(9)
+Top5_countries_2k10Ex1_df = (Top5_countries_2k10Ex_df.groupby('country_or_area').agg({'flow':'count'}))
+Top5_countries_2k10Ex1_df = Top5_countries_2k10Ex1_df.sort_values(by='flow', ascending = False)
+
+
+
+
+
